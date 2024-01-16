@@ -7,6 +7,8 @@ public class Query {
     private static final ArrayList<Character> BI_QUERY_OPERATORS = new ArrayList<>(Arrays.asList('∪', '∩', '-', '⨝'));
     private final HashMap<String, Table> tableHashMap;
 
+    private Table lastTable = null;
+
     public Query() {
         tableHashMap = new HashMap<>();
     }
@@ -20,6 +22,7 @@ public class Query {
         String exactQuery = parseNamedTables(query.replaceAll("[ +]", " ").replaceAll("\n+", "\n"));
         Table table = queryHelper(exactQuery);
         if(table == null) return;
+        lastTable = table;
         table.printTable();
     }
 
@@ -185,11 +188,42 @@ public class Query {
     }
 
     private boolean isTable(String tableStr) {
+        if(tableStr.isEmpty()) return false;
+        if(!tableStr.contains("={") &&tableStr.contains("{") && !tableStr.startsWith("{")) return false;
         if (tableStr.startsWith("(") && tableStr.endsWith(")")) tableStr = tableStr.substring(1, tableStr.length() - 1);
         if (tableHashMap.containsKey(tableStr)) return true;
         tableStr = tableStr.replaceAll("[\\p{Ps}\\p{Pe} ]", "").trim();
         ArrayList<String> rows = new ArrayList<>(Arrays.asList(tableStr.split("\n")));
         return Table.isTable(rows);
+    }
+
+    public boolean saveTable(String name){
+        if(lastTable == null) {
+            System.err.println("No table to save");
+            return false;
+        }
+        if(tableHashMap.containsKey(name)) {
+            System.err.println("Table already exists");
+            return false;
+        }
+        tableHashMap.put(name, lastTable);
+        return true;
+    }
+
+    public void printLastTable(){
+        if(lastTable == null) {
+            System.out.println("No table to print");
+            return;
+        }
+        lastTable.printTable();
+    }
+
+    public void printTables(){
+        System.out.println("Tables:");
+        for(String key : tableHashMap.keySet()){
+            System.out.println(key);
+        }
+        System.out.println();
     }
 
     public Table getTable(String tableStr) {
