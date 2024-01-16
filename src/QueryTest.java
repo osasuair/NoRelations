@@ -67,6 +67,6 @@ class QueryTest {
 
                 }
 
-                (Student) ⨝ id=sid (takes)""");
+                (Student) ⨝ Student.id=takes.sid (takes)""");
     }
 }

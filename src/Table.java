@@ -2,7 +2,7 @@ import java.util.*;
 
 public class Table {
     public static final ArrayList<String> OPERATORS = new ArrayList<>(Arrays.asList("!=", "<=", ">=", "<", ">", "="));
-    private final ArrayList<ArrayList<Object>> table;  // Stores values in the table
+    private final ArrayList<ArrayList<Object>> table ;  // Stores values in the table
     private final ArrayList<Class<?>> colType;  // Stores the type of data for each column
     private final HashMap<String, Integer> colIndex;  // Stores the index of each column
 
@@ -162,6 +162,10 @@ public class Table {
     public Table select(String condition) {
         ArrayList<ArrayList<Object>> newTable = new ArrayList<>();
         String[] parts = breakCondition(condition);
+        if (parts == null) {
+            System.err.println("Error: Invalid condition: "+ condition);
+            return null;
+        }
 
         // Process rows based on the selection condition
         for (ArrayList<Object> row : table) {
@@ -213,16 +217,20 @@ public class Table {
             table = new Table(new ArrayList<>(colType), new HashMap<>(colIndex), new ArrayList<>(this.table));
         }
         ArrayList<Class<?>> newColType = new ArrayList<>(this.colType);
-        HashMap<String, Integer> newColIndex = new HashMap<>();
+        HashMap<String, Integer> newColIndex = new HashMap<>(this.colIndex);
         ArrayList<ArrayList<Object>> newTable = new ArrayList<>();
         String[] parts = breakCondition(condition);
+        if (parts == null) {
+            System.err.println("Error: Invalid condition: "+ condition);
+            return null;
+        }
 
-        int columnToRemove = createColumnsWithCondition(table, newColIndex, newColType, parts);  // Update columns and return the index of a duplicate column if it exists
+        int removedCol = createColumnsWithCondition(table, newColIndex, newColType, parts);  // Update columns and return the index of a duplicate column if it exists
 
         for (ArrayList<Object> row1 : this.table) {
             for (ArrayList<Object> row2 : table.table) {
-                if ((columnToRemove != -1 ? evaluateCondition(getOperandObj(parts[0].trim(), this, row1), row2.get(columnToRemove), parts[1]) : evaluateCondition(row1, table, row2, parts))) {
-                    newTable.add(mergeRows(row1, row2, columnToRemove));
+                if (evaluateCondition(row1, table, row2, parts)) {
+                    newTable.add(mergeRows(row1, row2, removedCol));
                 }
             }
         }
@@ -243,42 +251,55 @@ public class Table {
      * @return Index of a removed column if it exists, otherwise -1
      */
     private int createColumnsWithCondition(Table table, HashMap<String, Integer> newColIndex, ArrayList<Class<?>> newColType, String[] parts) {
-        int columnToRemove = -1;
         int i = this.colIndex.size();
-        String[] conditionParts = new String[3];
+        newColType.addAll(table.colType);
+        String[] newColName = new String[2];  // Stores the new column names
+        String[] conditionParts = new String[2];
+        int removedColIndex = -1;  // Index of a removed column if it exists, otherwise -1
 
-        // Remove the table name from the column names if it exists
+        // Store the column name without the table names
         conditionParts[0] = parts[0].contains(".") ? parts[0].substring(parts[0].indexOf(".") + 1) : parts[0];
-        conditionParts[2] = parts[2].contains(".") ? parts[2].substring(parts[2].indexOf(".") + 1) : parts[2];
+        conditionParts[1] = parts[2].contains(".") ? parts[2].substring(parts[2].indexOf(".") + 1) : parts[2];
+        newColName[0] = conditionParts[0];
+        newColName[1] = conditionParts[1];
 
-        if (conditionParts[0].equals(conditionParts[2])) {  // Duplicate column names
+        if (conditionParts[0].equals(conditionParts[1])) {  // Duplicate column names
             if (parts[1].equals("=")) {  // Duplicate column must be removed
-                if (!this.colIndex.containsKey(conditionParts[0]) || !this.colIndex.containsKey(conditionParts[2])) {
+                if (!this.colIndex.containsKey(conditionParts[0])) {
                     System.err.println("Error: Column in condition does not exist in the table");
                     return -1;
                 }
-                columnToRemove = table.colIndex.get(conditionParts[2]);
-                table.colType.remove(columnToRemove);
-                table.colIndex.remove(conditionParts[2]);
+                newColName[1] = null;
             } else {  // Change the name of the duplicate columns
-                int leftTableColIndex = this.colIndex.remove(conditionParts[0]);
-                int rightTableColIndex = table.colIndex.remove(conditionParts[2]);
+                newColName[0] = parts[0];
+                newColName[1] = parts[2];
                 if (parts[0].equals(parts[2])) {  // table.column format was used
-                    parts[0] += "_1";
-                    parts[2] += "_2";
+                    newColName[0] += "_1";
+                    newColName[1] += "_2";
                 }
-                this.colIndex.put(parts[0], leftTableColIndex);
-                table.colIndex.put(parts[2], rightTableColIndex);
             }
         }
 
-        // Add columns from the right table
-        newColType.addAll(table.colType);
-        newColIndex.putAll(this.colIndex);
-        for (String colName : table.getColsByIndex()) {
-            newColIndex.put(colName, i++);
+        // if the column name of the left table is changed, update the new table
+        if(!newColIndex.containsKey(newColName[0])) {
+            int index = newColIndex.remove(conditionParts[0]);
+            newColIndex.put(newColName[0], index);
         }
-        return columnToRemove;
+
+        // Add columns from the right table
+        for (String colName : table.getColsByIndex()) {
+            if(newColName[1] != null && colName.equals(conditionParts[1]) && !(colName.equals(newColName[1]))) {  // case where column names are changed
+                newColIndex.put(newColName[1], i++);
+            }
+            else if(!newColIndex.containsKey(colName)){  // case where column names are not changed
+                newColIndex.put(colName, i++);
+            } else {  // case where duplicate column was removed
+                removedColIndex = table.colIndex.get(colName);
+                newColType.remove(this.colType.size() +removedColIndex);
+            }
+        }
+
+        return removedColIndex;
     }
 
     /**
@@ -326,8 +347,8 @@ public class Table {
             }
         }
         if (op == null) {
-            System.out.println("Invalid condition: " + condition);
-            throw new IllegalArgumentException("Invalid condition: " + condition);
+            System.err.println("Invalid condition: " + condition);
+            return null;
         }
 
         parts[0] = condition.substring(0, condition.indexOf(op)).trim();
@@ -347,6 +368,9 @@ public class Table {
      * @return True if the condition is satisfied, otherwise false
      */
     private boolean evaluateCondition(ArrayList<Object> row1, Table table, ArrayList<Object> row2, String[] parts) {
+        if (parts == null) {
+            return false;
+        }
         String op = parts[1];
         // Remove the table name from the column names if it exists
         Object leftValue = getOperandObj(parts[0].trim(), this, row1);
@@ -452,18 +476,58 @@ public class Table {
     }
 
     /**
-     * Prints the table
+     * Prints the table aligned by column
      */
     public void printTable() {
-        ArrayList<String> colName = getColsByIndex();
-        System.out.println(String.join(", ", colName));
-        for (ArrayList<Object> row : table) {
-            for (int j = 0; j < row.size(); j++) {
-                if (colType.get(j) == String.class) System.out.print("'" + colType.get(j).cast(row.get(j)) + "' ");
-                else System.out.print(colType.get(j).cast(row.get(j)) + " ");
-            }
-            System.out.println();
+        // Calculate column widths based on the largest element and column name in each column
+        int[] colWidths = new int[colIndex.size()];
+
+        // Consider column names
+        for (String columnName : colIndex.keySet()) {
+            int columnIndex = colIndex.get(columnName);
+            colWidths[columnIndex] = Math.max(colWidths[columnIndex], columnName.length());
         }
+
+        // Consider data elements
+        for (ArrayList<Object> row : table) {
+            for (int i = 0; i < row.size(); i++) {
+                int currentWidth = String.valueOf(row.get(i)).length();
+                if (row.get(i) instanceof String) currentWidth += 2;  // Account for quotes
+                colWidths[i] = Math.max(colWidths[i], currentWidth);
+            }
+        }
+
+        // Print top border
+        printBorder(colWidths);
+
+        // Print header
+        for (String columnName : this.getColsByIndex()) {
+            System.out.printf("| %-" + colWidths[colIndex.get(columnName)] + "s ", columnName);
+        }
+        System.out.println("|");
+
+        // Print middle border
+        printBorder(colWidths);
+
+        // Print rows
+        for (ArrayList<Object> row : table) {
+            for (int i = 0; i < row.size(); i++) {
+                Object value = row.get(i);
+                if(value instanceof String) value = "'" + value + "'";  // Add quotes to strings
+                System.out.printf("| %-" + colWidths[i] + "s ", value);
+            }
+            System.out.println("|");
+        }
+
+        // Print bottom border
+        printBorder(colWidths);
+    }
+
+    private void printBorder(int[] colWidths) {
+        for (int width : colWidths) {
+            System.out.print("+" + "-".repeat(width + 2));  // 2 accounts for padding and border
+        }
+        System.out.println("+");
     }
 
 }
