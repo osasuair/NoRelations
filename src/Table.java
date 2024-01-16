@@ -2,7 +2,7 @@ import java.util.*;
 
 public class Table {
     public static final ArrayList<String> OPERATORS = new ArrayList<>(Arrays.asList("!=", "<=", ">=", "<", ">", "="));
-    private final ArrayList<ArrayList<Object>> table;  // Stores values in the table
+    private final ArrayList<ArrayList<Object>> table ;  // Stores values in the table
     private final ArrayList<Class<?>> colType;  // Stores the type of data for each column
     private final HashMap<String, Integer> colIndex;  // Stores the index of each column
 
@@ -276,7 +276,7 @@ public class Table {
         newColType.addAll(table.colType);
         newColIndex.putAll(this.colIndex);
         for (String colName : table.getColsByIndex()) {
-            newColIndex.put(colName, i++);
+            blahh
         }
         return columnToRemove;
     }
@@ -452,18 +452,58 @@ public class Table {
     }
 
     /**
-     * Prints the table
+     * Prints the table aligned by column
      */
     public void printTable() {
-        ArrayList<String> colName = getColsByIndex();
-        System.out.println(String.join(", ", colName));
-        for (ArrayList<Object> row : table) {
-            for (int j = 0; j < row.size(); j++) {
-                if (colType.get(j) == String.class) System.out.print("'" + colType.get(j).cast(row.get(j)) + "' ");
-                else System.out.print(colType.get(j).cast(row.get(j)) + " ");
-            }
-            System.out.println();
+        // Calculate column widths based on the largest element and column name in each column
+        int[] colWidths = new int[colIndex.size()];
+
+        // Consider column names
+        for (String columnName : colIndex.keySet()) {
+            int columnIndex = colIndex.get(columnName);
+            colWidths[columnIndex] = Math.max(colWidths[columnIndex], columnName.length());
         }
+
+        // Consider data elements
+        for (ArrayList<Object> row : table) {
+            for (int i = 0; i < row.size(); i++) {
+                int currentWidth = String.valueOf(row.get(i)).length();
+                if (row.get(i) instanceof String) currentWidth += 2;  // Account for quotes
+                colWidths[i] = Math.max(colWidths[i], currentWidth);
+            }
+        }
+
+        // Print top border
+        printBorder(colWidths);
+
+        // Print header
+        for (String columnName : this.getColsByIndex()) {
+            System.out.printf("| %-" + colWidths[colIndex.get(columnName)] + "s ", columnName);
+        }
+        System.out.println("|");
+
+        // Print middle border
+        printBorder(colWidths);
+
+        // Print rows
+        for (ArrayList<Object> row : table) {
+            for (int i = 0; i < row.size(); i++) {
+                Object value = row.get(i);
+                if(value instanceof String) value = "'" + value + "'";  // Add quotes to strings
+                System.out.printf("| %-" + colWidths[i] + "s ", value);
+            }
+            System.out.println("|");
+        }
+
+        // Print bottom border
+        printBorder(colWidths);
+    }
+
+    private void printBorder(int[] colWidths) {
+        for (int width : colWidths) {
+            System.out.print("+" + "-".repeat(width + 2));  // 2 accounts for padding and border
+        }
+        System.out.println("+");
     }
 
 }

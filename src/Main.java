@@ -7,28 +7,37 @@ public class Main {
         StringBuilder userInputBuilder = new StringBuilder();
         String userInput;
         boolean activeStatement = false;
+        System.out.println("Enter a query and type 'finish.' to send query, 'help.' for help or 'exit.' to quit.");
 
         while (true) {
             if(!activeStatement){
-                System.out.println("Enter a query and type 'finish.' to send query, help, or 'exit,' to quit: ");
+                System.out.print("Start a new query or type 'help.' for help.\n>>> ");
+            } else {
+                System.out.print(">>> ");
             }
             userInput = scanner.nextLine();
-            if (!activeStatement && userInput.toLowerCase().contains("exit.")) {
+            activeStatement = true;
+            if (userInput.contains("finish.")) {
+                userInputBuilder.append(userInput, 0, userInput.indexOf("finish."));
+                query.parseQuery(userInputBuilder.toString());
+                activeStatement = false;
+                userInputBuilder = new StringBuilder();
+            }
+            else if (userInput.toLowerCase().contains("exit.")) {
                 System.out.println("Exiting terminal.");
                 break;
             }
-            if (!activeStatement && userInput.contains("finish.")) {
-                userInput = userInput.substring(0, userInput.indexOf("finish."));
-                userInputBuilder.append(userInput);
-                query.parseQuery(userInputBuilder.toString());
+            else if (userInput.equals("help.")) {
+                System.out.println("Type 'finish.' to send query,\n'help.' for help,\n'clear.' to clear query,\n'print.' to print query\nor 'exit.' to quit.");
             }
-
-            userInputBuilder.append(userInput);
-            if (!activeStatement) {
-                userInput = userInputBuilder.toString();
-                query.parseQuery(userInput);
-                System.out.println("Query executed successfully.\n");
-                userInputBuilder.setLength(0);
+            else if (userInput.equals("clear.")) {
+                userInputBuilder = new StringBuilder();
+            }
+            else if (userInput.equals("print.")) {
+                System.out.println(userInputBuilder);
+            }
+            else {
+                userInputBuilder.append(userInput).append("\n");
             }
         }
 

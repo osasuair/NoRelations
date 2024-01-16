@@ -67,6 +67,10 @@ class QueryTest {
 
                 }
 
-                (Student) ⨝ id=sid (takes)""");
+                (Student) ⨝ id=sid (takes)
+                finish.
+                exit.
+                """);
+
     }
 }
