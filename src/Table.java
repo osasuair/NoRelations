@@ -248,7 +248,7 @@ public class Table {
      * @param newColIndex - HashMap of column names and their index
      * @param newColType  - ArrayList of column types
      * @param parts       - Array of Strings representing the left operand, operator, and right operand of the condition
-     * @return Array of Strings representing the new column names
+     * @return Index of a removed column if it exists, otherwise -1
      */
     private int createColumnsWithCondition(Table table, HashMap<String, Integer> newColIndex, ArrayList<Class<?>> newColType, String[] parts) {
         int i = this.colIndex.size();
