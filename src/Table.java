@@ -220,6 +220,10 @@ public class Table {
         HashMap<String, Integer> newColIndex = new HashMap<>(this.colIndex);
         ArrayList<ArrayList<Object>> newTable = new ArrayList<>();
         String[] parts = breakCondition(condition);
+        if (parts == null) {
+            System.err.println("Error: Invalid condition: "+ condition);
+            return null;
+        }
 
         int removedCol = createColumnsWithCondition(table, newColIndex, newColType, parts);  // Update columns and return the index of a duplicate column if it exists
 
