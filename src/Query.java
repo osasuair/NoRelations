@@ -16,6 +16,51 @@ public class Query {
     }
 
     /**
+     * Finds the index of the query operator
+     *
+     * @param query        the query to be parsed
+     * @param queryArr     the query as a char array
+     * @param queryOpIndex the index of the query operator
+     * @return the index of the query operator
+     */
+    private static int getQueryOpIndex(String query, char[] queryArr, int queryOpIndex) {
+        // find query operator
+        if (queryArr[0] == '(') {
+            int bracketCount = 1;
+            for (queryOpIndex = 1; queryOpIndex < queryArr.length; ++queryOpIndex) {
+                if (queryArr[queryOpIndex] == '(') {
+                    bracketCount++;
+                } else if (queryArr[queryOpIndex] == ')') {
+                    bracketCount--;
+                }
+                if (bracketCount == 0) {
+                    break;
+                }
+            }
+
+            if (bracketCount == 0) {
+                queryOpIndex++;  // There are brackets surrounding the left operand so
+                //    skip past the closing bracket to find the operator
+            } else {
+                System.out.println("Invalid Query - Parentheses Mismatch");
+                return -1;
+            }
+        }
+
+        if (queryOpIndex == -1) queryOpIndex = 0;
+        for (; queryOpIndex < query.length(); ++queryOpIndex) {
+            if (BI_QUERY_OPERATORS.contains(queryArr[queryOpIndex])) {
+                break;  // found query operator
+            }
+        }
+        if (queryOpIndex == query.length()) {
+            System.err.println("Invalid Query - '" + query + "' is not a valid query or table");
+            return -1;
+        }
+        return queryOpIndex;
+    }
+
+    /**
      * Parses a query and prints the result
      *
      * @param query the query to be parsed
@@ -25,7 +70,7 @@ public class Query {
         if (exactQuery == null) return;
         exactQuery = replaceKeys(exactQuery);
         Table table = queryHelper(exactQuery);
-        if(table == null) return;
+        if (table == null) return;
         lastTable = table;
         table.printTable();
     }
@@ -40,7 +85,7 @@ public class Query {
         ArrayList<Character> allOperators = new ArrayList<>(UNI_QUERY_OPERATORS);
         allOperators.addAll(BI_QUERY_OPERATORS);
         for (int i = 0; i < allOperators.size(); i++) {
-            exactQuery = exactQuery.replace(QUERY_OPERATORS_STR.get(i)+" ", allOperators.get(i).toString()+" ");
+            exactQuery = exactQuery.replace(QUERY_OPERATORS_STR.get(i) + " ", allOperators.get(i).toString() + " ");
         }
         return exactQuery;
     }
@@ -87,51 +132,6 @@ public class Query {
             assert leftOperand != null;
             return handleSetOperation(query, queryArr, queryOpIndex, leftOperand);
         }
-    }
-
-    /**
-     * Finds the index of the query operator
-     *
-     * @param query        the query to be parsed
-     * @param queryArr     the query as a char array
-     * @param queryOpIndex the index of the query operator
-     * @return the index of the query operator
-     */
-    private static int getQueryOpIndex(String query, char[] queryArr, int queryOpIndex) {
-        // find query operator
-        if (queryArr[0] == '(') {
-            int bracketCount = 1;
-            for (queryOpIndex = 1; queryOpIndex < queryArr.length; ++queryOpIndex) {
-                if (queryArr[queryOpIndex] == '(') {
-                    bracketCount++;
-                } else if (queryArr[queryOpIndex] == ')') {
-                    bracketCount--;
-                }
-                if (bracketCount == 0) {
-                    break;
-                }
-            }
-
-            if (bracketCount == 0) {
-                queryOpIndex++;  // There are brackets surrounding the left operand so
-                //    skip past the closing bracket to find the operator
-            } else {
-                System.out.println("Invalid Query - Parentheses Mismatch");
-                return -1;
-            }
-        }
-
-        if (queryOpIndex == -1) queryOpIndex = 0;
-        for (; queryOpIndex < query.length(); ++queryOpIndex) {
-            if (BI_QUERY_OPERATORS.contains(queryArr[queryOpIndex])) {
-                break;  // found query operator
-            }
-        }
-        if (queryOpIndex == query.length()) {
-            System.err.println("Invalid Query - '" + query + "' is not a valid query or table");
-            return -1;
-        }
-        return queryOpIndex;
     }
 
     /**
@@ -312,8 +312,8 @@ public class Query {
      * @return true if the string is a table, false otherwise
      */
     private boolean isTable(String tableStr) {
-        if(tableStr.isEmpty()) return false;
-        if(!tableStr.contains("={") &&tableStr.contains("{") && !tableStr.startsWith("{")) return false;
+        if (tableStr.isEmpty()) return false;
+        if (!tableStr.contains("={") && tableStr.contains("{") && !tableStr.startsWith("{")) return false;
         if (tableStr.startsWith("(") && tableStr.endsWith(")")) tableStr = tableStr.substring(1, tableStr.length() - 1);
         if (tableHashMap.containsKey(tableStr)) return true;
         tableStr = tableStr.replaceAll("[\\p{Ps}\\p{Pe} ]", "").trim();
@@ -327,12 +327,12 @@ public class Query {
      * @param name the name of the table
      * @return true if the table was saved, false otherwise
      */
-    public boolean saveTable(String name){
-        if(lastTable == null) {
+    public boolean saveTable(String name) {
+        if (lastTable == null) {
             System.out.println("No table to save");
             return false;
         }
-        if(tableHashMap.containsKey(name)) {
+        if (tableHashMap.containsKey(name)) {
             System.err.println("Table name already exists");
             return false;
         }
@@ -343,8 +343,8 @@ public class Query {
     /**
      * Prints the last table
      */
-    public void printLastTable(){
-        if(lastTable == null) {
+    public void printLastTable() {
+        if (lastTable == null) {
             System.out.println("No table to print");
             return;
         }
@@ -354,9 +354,9 @@ public class Query {
     /**
      * Prints the names of the tables in the tableHashMap
      */
-    public void printTables(){
+    public void printTables() {
         System.out.println("Tables:");
-        for(String key : tableHashMap.keySet()){
+        for (String key : tableHashMap.keySet()) {
             System.out.println(key);
         }
         System.out.println();

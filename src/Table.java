@@ -2,7 +2,7 @@ import java.util.*;
 
 public class Table {
     public static final ArrayList<String> OPERATORS = new ArrayList<>(Arrays.asList("!=", "<=", ">=", "<", ">", "="));
-    private final ArrayList<ArrayList<Object>> table ;  // Stores values in the table
+    private final ArrayList<ArrayList<Object>> table;  // Stores values in the table
     private final ArrayList<Class<?>> colType;  // Stores the type of data for each column
     private final HashMap<String, Integer> colIndex;  // Stores the index of each column
 
@@ -50,7 +50,7 @@ public class Table {
     /**
      * Returns the table with the specified name
      *
-     * @param rows - ArrayList of rows
+     * @param rows         - ArrayList of rows
      * @param disablePrint - Boolean to disable printing of error messages
      * @return Table with the specified name
      */
@@ -70,7 +70,7 @@ public class Table {
 
             // Verify that the number of values in the row matches the number of columns
             if (cols.length != colName.size()) {
-                if(!disablePrint) System.out.println("Error: Invalid number of columns at row " + i);
+                if (!disablePrint) System.out.println("Error: Invalid number of columns at row " + i);
                 return false;
             }
 
@@ -82,7 +82,7 @@ public class Table {
                     else if (col.contains("true") || col.contains("false")) row.add(Boolean.parseBoolean(col));
                     else row.add(Integer.parseInt(col));
                 } catch (Exception e) {
-                    if(!disablePrint) System.out.println("Error: Invalid data type at row " + i + ", column " + j);
+                    if (!disablePrint) System.out.println("Error: Invalid data type at row " + i + ", column " + j);
                     return false;
                 }
             }
@@ -163,7 +163,7 @@ public class Table {
         ArrayList<ArrayList<Object>> newTable = new ArrayList<>();
         String[] parts = breakCondition(condition);
         if (parts == null) {
-            System.err.println("Error: Invalid condition: "+ condition);
+            System.err.println("Error: Invalid condition: " + condition);
             return null;
         }
 
@@ -213,7 +213,7 @@ public class Table {
      * @return New Table with join operation applied
      */
     public Table join(Table table, String condition) {
-        if(table == this){
+        if (table == this) {
             table = new Table(new ArrayList<>(colType), new HashMap<>(colIndex), new ArrayList<>(this.table));
         }
         ArrayList<Class<?>> newColType = new ArrayList<>(this.colType);
@@ -221,7 +221,7 @@ public class Table {
         ArrayList<ArrayList<Object>> newTable = new ArrayList<>();
         String[] parts = breakCondition(condition);
         if (parts == null) {
-            System.err.println("Error: Invalid condition: "+ condition);
+            System.err.println("Error: Invalid condition: " + condition);
             return null;
         }
 
@@ -234,7 +234,7 @@ public class Table {
                 }
             }
         }
-        if(newColIndex.size()!= newColType.size() || newColIndex.size() != newTable.getFirst().size()) {
+        if (newColIndex.size() != newColType.size() || newColIndex.size() != newTable.getFirst().size()) {
             System.err.println("Error: Duplicate column names");
             return null;
         }
@@ -281,21 +281,20 @@ public class Table {
         }
 
         // if the column name of the left table is changed, update the new table
-        if(!newColIndex.containsKey(newColName[0])) {
+        if (!newColIndex.containsKey(newColName[0])) {
             int index = newColIndex.remove(conditionParts[0]);
             newColIndex.put(newColName[0], index);
         }
 
         // Add columns from the right table
         for (String colName : table.getColsByIndex()) {
-            if(newColName[1] != null && colName.equals(conditionParts[1]) && !(colName.equals(newColName[1]))) {  // case where column names are changed
+            if (newColName[1] != null && colName.equals(conditionParts[1]) && !(colName.equals(newColName[1]))) {  // case where column names are changed
                 newColIndex.put(newColName[1], i++);
-            }
-            else if(!newColIndex.containsKey(colName)){  // case where column names are not changed
+            } else if (!newColIndex.containsKey(colName)) {  // case where column names are not changed
                 newColIndex.put(colName, i++);
             } else {  // case where duplicate column was removed
                 removedColIndex = table.colIndex.get(colName);
-                newColType.remove(this.colType.size() +removedColIndex);
+                newColType.remove(this.colType.size() + removedColIndex);
             }
         }
 
@@ -449,6 +448,7 @@ public class Table {
 
     /**
      * Helper method to check if the column types of two tables are the same
+     *
      * @param table - Table to be compared
      * @return True if the column types are the same, otherwise false
      */
@@ -513,7 +513,7 @@ public class Table {
         for (ArrayList<Object> row : table) {
             for (int i = 0; i < row.size(); i++) {
                 Object value = row.get(i);
-                if(value instanceof String) value = "'" + value + "'";  // Add quotes to strings
+                if (value instanceof String) value = "'" + value + "'";  // Add quotes to strings
                 System.out.printf("| %-" + colWidths[i] + "s ", value);
             }
             System.out.println("|");
