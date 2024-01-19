@@ -48,7 +48,8 @@ table2={col1, col2
 2, 3
 4, 5
 }
-table1 ∪ table2 finish.
+table1 ∪ table2
+finish.
 ```
 And the program would return:
 ```bash
