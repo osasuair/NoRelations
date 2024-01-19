@@ -19,10 +19,10 @@ These operations can be applied to tables, which are stored for easy retrieval. 
 
 To run the program, you will need to use the Java Runtime Environment (JRE). If you do not have it installed, you can download it from the [official Oracle website](https://www.oracle.com/java/technologies/javase-jre8-downloads.html).
 
-Once you have the JRE installed, you can run the program using the following command in your terminal:
+Once you have the JRE installed, you can run the program using the following command in your terminal in the main folder:
 
 ```bash
-java -jar main_folder/your_jar_file.jar
+java -jar .\NoRelations.jar
 ```
 
 Replace `your_jar_file.jar` with the actual name of the JAR file in the main folder.
