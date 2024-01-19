@@ -1,4 +1,4 @@
-# Relational Algebra Compiler
+# NoRelations - Relational Algebra Compiler
 
 This project is a Relational Algebra Compiler written in Java. It is designed to parse and execute queries based on the principles of relational algebra, a fundamental aspect of database systems.
 
