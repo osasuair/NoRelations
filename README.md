@@ -17,15 +17,16 @@ These operations can be applied to tables, which are stored for easy retrieval. 
 
 ## How to Run
 
+First, Download the project as a zip and unzip the file or clone the repository
+
 To run the program, you will need to use the Java Runtime Environment (JRE). If you do not have it installed, you can download it from the [official Oracle website](https://www.oracle.com/java/technologies/javase-jre8-downloads.html).
 
-Once you have the JRE installed, you can run the program using the following command in your terminal in the main folder:
+Now that Java is installed correctly, head over to the folder containing the project,
+you can run the program using the following command in your terminal in the main folder:
 
 ```bash
 java -jar .\NoRelations.jar
 ```
-
-Replace `your_jar_file.jar` with the actual name of the JAR file in the main folder.
 
 Please note that the program uses a command-line interface. After starting the program, you will be prompted to enter your queries. The program will then parse and execute these queries, printing the results to the console.
 
