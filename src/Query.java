@@ -1,7 +1,4 @@
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.TreeSet;
+import java.util.*;
 
 public class Query {
     private static final ArrayList<Character> UNI_QUERY_OPERATORS = new ArrayList<>(Arrays.asList('π', 'σ'));
