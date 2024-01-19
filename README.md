@@ -13,7 +13,7 @@ The compiler supports a variety of operations, including:
 - Difference (`-`)
 - Join (`⨝`)
 
-These operations can be applied to tables, which are stored in a HashMap for easy retrieval. The compiler also supports the creation of new tables from existing ones, and the saving of tables for later use.
+These operations can be applied to tables, which are stored for easy retrieval. The compiler also supports the creation of new tables from existing ones and the saving of tables for later use.
 
 ## How to Run
 
