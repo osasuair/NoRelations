@@ -1,7 +1,11 @@
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
 class QueryTest {
 
     @org.junit.jupiter.api.Test
-    void parseQuery() {
+    void testParseQuery() {
         Query query = new Query();
         String queryStr = "table1 = {Name, Age, Height\n'John', 25, 6.0\n'Jane', 23, 5.5\n'Jack', 27, 5.9}\n table2 = {Name, Age, Height\n'John', 25, 6.0\n'Jane', 23, 5.5\n'Jak', 27, 5.9}\ntable3 = {Name, Ages, Heights\n'John', 25, 6.0\n'Jane', 23, 5.5\n'Jack', 27, 5.9}\n";
         query.parseQuery(queryStr);
@@ -68,5 +72,22 @@ class QueryTest {
                 }
 
                 (Student) ⨝ Student.id=takes.sid (takes)""");
+    }
+
+    @Test
+    void testSaveTable() {
+        Query query = new Query();
+        String queryStr = "table1 = {Name, Age, Height\n'John', 25, 6.0\n'Jane', 23, 5.5\n'Jack', 27, 5.9}\n";
+        query.parseQuery(queryStr);
+        assertTrue(query.saveTable("table2"));
+        assertFalse(query.saveTable("table1"));
+    }
+
+    @Test
+    void testQueryWithoutTables() {
+        Query query = new Query();
+        String queryStr = "π Name, Age (σ Age>=25 ({Name, Age, Height\n'John', 25, 6.0\n'Jane', 23, 5.5\n'Jack', 27, 5.9}))";
+        query.parseQuery(queryStr);
+        assertNull(query.getTable(""));
     }
 }

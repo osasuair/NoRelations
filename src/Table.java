@@ -59,38 +59,91 @@ public class Table {
             return false;
         }
 
-        ArrayList<String> colName = new ArrayList<>(Arrays.asList(rows.get(0).split(",")));  // Get column names
-        String[] firstValues = rows.get(1).split(",");  // Get first row of values
+        ArrayList<String> colName = parseRow(rows.get(0));
+        ArrayList<String> firstValues = parseRow(rows.get(1)); // Fixed line
         updateCols(colName, firstValues);
 
-        // Loop through each row and convert the values to their respective data types
         for (int i = 1; i < rows.size(); i++) {
-            ArrayList<Object> row = new ArrayList<>();
-            String[] cols = rows.get(i).split(",");
-
-            // Verify that the number of values in the row matches the number of columns
-            if (cols.length != colName.size()) {
-                if (!disablePrint) System.out.println("Error: Invalid number of columns at row " + i);
+            ArrayList<Object> row = parseAndValidateRow(rows.get(i), colName.size(), i, disablePrint);
+            if (row == null) {
                 return false;
-            }
-
-            for (int j = 0; j < cols.length; j++) {
-                String col = cols[j];
-                try {
-                    if (isString(col)) row.add(col.substring(1, col.length() - 1));
-                    else if (col.contains(".")) row.add(Double.parseDouble(col));
-                    else if (col.contains("true") || col.contains("false")) row.add(Boolean.parseBoolean(col));
-                    else row.add(Integer.parseInt(col));
-                } catch (Exception e) {
-                    if (!disablePrint) System.out.println("Error: Invalid data type at row " + i + ", column " + j);
-                    return false;
-                }
             }
             table.add(row);
         }
         return true;
     }
 
+    /**
+     * Parses a row from the table.
+     *
+     * @param row The row to parse.
+     * @return An ArrayList of Strings, where each String is a column value from the row.
+     */
+    private ArrayList<String> parseRow(String row) {
+        return new ArrayList<>(Arrays.asList(row.replace(" ", "").split(",")));
+    }
+
+    /**
+     * Parses and validates a row from the table.
+     *
+     * @param rowStr       The row to parse and validate.
+     * @param colCount     The expected number of columns in the row.
+     * @param rowIndex     The index of the row (used for error messages).
+     * @param disablePrint If true, error messages will not be printed.
+     * @return An ArrayList of Objects, where each Object is a parsed and validated column value from the row.
+     * Returns null if the row is invalid.
+     */
+    private ArrayList<Object> parseAndValidateRow(String rowStr, int colCount, int rowIndex, boolean disablePrint) {
+        String[] cols = parseRow(rowStr).toArray(new String[0]);
+        if (cols.length != colCount) {
+            if (!disablePrint) System.out.println("Error: Invalid number of columns at row " + rowIndex);
+            return null;
+        }
+
+        ArrayList<Object> row = new ArrayList<>();
+        for (int j = 0; j < cols.length; j++) {
+            Object value = parseValue(cols[j]);
+            if (value == null) {
+                if (!disablePrint) System.out.println("Error: Invalid data type at row " + rowIndex + ", column " + j);
+                return null;
+            }
+            row.add(value);
+        }
+        return row;
+    }
+
+    /**
+     * Parses a value from a column in the table.
+     *
+     * @param col The column value to parse.
+     * @return The parsed value, as an Object. The type of the Object will be String, Double, Boolean, or Integer,
+     * depending on the format of the column value.
+     */
+    private Object parseValue(String col) {
+        if (isString(col)) return col.substring(1, col.length() - 1);
+        if (col.contains(".")) return Double.parseDouble(col);
+        if (col.contains("true") || col.contains("false")) return Boolean.parseBoolean(col);
+        return Integer.parseInt(col);
+    }
+
+    /**
+     * Returns the table.
+     *
+     * @return The table, as an ArrayList of ArrayLists of Objects. Each inner ArrayList represents a row in the table,
+     * and each Object in the inner ArrayList represents a column value in the row.
+     */
+    public ArrayList<ArrayList<Object>> getTable() {
+        return table;
+    }
+
+    /**
+     * Returns the column names in the table.
+     *
+     * @return A Set of Strings, where each String is a column name in the table.
+     */
+    public Set<String> getColumns() {
+        return colIndex.keySet();
+    }
 
     /**
      * Takes an ArrayList of rows and builds the table
@@ -107,9 +160,9 @@ public class Table {
      * @param colName - ArrayList of column names
      * @param row     - Array of values
      */
-    private void updateCols(ArrayList<String> colName, String[] row) {
+    private void updateCols(ArrayList<String> colName, ArrayList<String> row) {
         for (int i = 0; i < colName.size(); i++) {
-            String col = row[i];
+            String col = row.get(i);
             if (isString(col)) colType.add(String.class);
             else if (col.contains(".")) colType.add(Double.class);
             else if (col.contains("true") || col.contains("false")) colType.add(Boolean.class);
@@ -521,6 +574,30 @@ public class Table {
 
         // Print bottom border
         printBorder(colWidths);
+    }
+
+    /**
+     * Returns table as string in relation format
+     *
+     * @return String representation of table
+     */
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\n");
+        for (String columnName : this.getColsByIndex()) {
+            sb.append(columnName).append(", ");
+        }
+        sb.delete(sb.length() - 2, sb.length());
+        sb.append("\n");
+        for (ArrayList<Object> row : table) {
+            for (Object value : row) {
+                sb.append(value).append(", ");
+            }
+            sb.delete(sb.length() - 2, sb.length());
+            sb.append("\n");
+        }
+        sb.append("}");
+        return sb.toString();
     }
 
     private void printBorder(int[] colWidths) {

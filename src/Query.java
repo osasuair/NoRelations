@@ -1,12 +1,17 @@
+import org.apache.logging.log4j.*;
+import com.google.common.base.Optional;
+
 import java.util.*;
 
 public class Query {
+    private static final Logger log = LogManager.getLogger(Query.class.getName());
     private static final ArrayList<Character> UNI_QUERY_OPERATORS = new ArrayList<>(Arrays.asList('π', 'σ'));
     private static final ArrayList<Character> BI_QUERY_OPERATORS = new ArrayList<>(Arrays.asList('∪', '∩', '-', '⨝'));
     private static final ArrayList<String> QUERY_OPERATORS_STR = new ArrayList<>(Arrays.asList("project", "select", "union", "intersection", "difference", "join"));
+
     private final HashMap<String, Table> tableHashMap;
 
-    private Table lastTable = null;
+    private Table lastTable;
 
     public Query() {
         tableHashMap = new HashMap<>();
@@ -39,7 +44,7 @@ public class Query {
                 queryOpIndex++;  // There are brackets surrounding the left operand so
                 //    skip past the closing bracket to find the operator
             } else {
-                System.out.println("Invalid Query - Parentheses Mismatch");
+                log.error("Invalid Query - Parentheses Mismatch");
                 return -1;
             }
         }
@@ -51,7 +56,7 @@ public class Query {
             }
         }
         if (queryOpIndex == query.length()) {
-            System.err.println("Invalid Query - '" + query + "' is not a valid query or table");
+            log.error("Invalid Query - '" + query + "' is not a valid query or table");
             return -1;
         }
         return queryOpIndex;
@@ -62,14 +67,17 @@ public class Query {
      *
      * @param query the query to be parsed
      */
-    public void parseQuery(String query) {
-        String exactQuery = parseNamedTables(query.replaceAll("[ +]", " ").replaceAll("\n+", "\n"));
-        if (exactQuery == null) return;
+    public Optional<Table> parseQuery(String query) {
+        Optional<String> tempExactQuery = parseNamedTables(query.replaceAll("[ +]", " ").replaceAll("\n+", "\n"));
+        if (!tempExactQuery.isPresent()) return Optional.absent();
+
+        String exactQuery = tempExactQuery.get();
         exactQuery = replaceKeys(exactQuery);
-        Table table = queryHelper(exactQuery);
-        if (table == null) return;
-        lastTable = table;
-        table.printTable();
+        Optional<Table> table = queryHelper(exactQuery);
+        assert table.isPresent();
+        lastTable = table.get();
+//        table.get().printTable();
+        return table;
     }
 
     /**
@@ -93,8 +101,8 @@ public class Query {
      * @param query the query to be parsed
      * @return the result of the query as a table
      */
-    private Table queryHelper(String query) {
-        if ((query = query.trim()).isEmpty()) return null;
+    private Optional<Table> queryHelper(String query) {
+        if ((query = query.trim()).isEmpty()) return Optional.absent();
         while (true) {  // remove wrapping brackets
             if (query.equals(query = removeWrappingBracket(query))) break;
         }
@@ -104,7 +112,7 @@ public class Query {
 
         // check if query is a table
         if (isTable(query)) {
-            return getTable(query);
+            return Optional.of(getTable(query));
         }
 
         // check if outermost query is a projection
@@ -118,16 +126,16 @@ public class Query {
         }
 
         queryOpIndex = getQueryOpIndex(query, queryArr, queryOpIndex);
-        if (queryOpIndex == -1) return null;
+        if (queryOpIndex == -1) return Optional.absent();
 
-        Table leftOperand = queryHelper(query.substring(0, queryOpIndex));
+        Optional<Table> leftOperand = queryHelper(query.substring(0, queryOpIndex));
+        assert Objects.requireNonNull(leftOperand).isPresent();
+
         // handle binary query operators
         if (queryArr[queryOpIndex] == '⨝') {
-            return handleJoin(query, queryArr, queryOpIndex, leftOperand);
-
+            return handleJoin(query, queryArr, queryOpIndex, leftOperand.get());
         } else {
-            assert leftOperand != null;
-            return handleSetOperation(query, queryArr, queryOpIndex, leftOperand);
+            return handleSetOperation(query, queryArr, queryOpIndex, leftOperand.get());
         }
     }
 
@@ -167,14 +175,14 @@ public class Query {
      * @param leftOperand  the left operand of the query
      * @return the result of the set operation
      */
-    private Table handleSetOperation(String query, char[] queryArr, int queryOpIndex, Table leftOperand) {
+    private Optional<Table> handleSetOperation(String query, char[] queryArr, int queryOpIndex, Table leftOperand) {
         // get right operand
         char queryOperator = queryArr[queryOpIndex];
         query = query.substring(queryOpIndex + 1);
-        Table rightOperand = queryHelper(query);
-        assert leftOperand != null;
-        assert rightOperand != null;
-        return leftOperand.setOperation(rightOperand, queryOperator);
+        Optional<Table> rightOperand = queryHelper(query);
+
+        assert Objects.requireNonNull(rightOperand).isPresent();
+        return Optional.of(leftOperand.setOperation(rightOperand.get(), queryOperator));
     }
 
     /**
@@ -186,7 +194,7 @@ public class Query {
      * @param leftOperand  the left operand of the query
      * @return the result of the join operation
      */
-    private Table handleJoin(String query, char[] queryArr, int queryOpIndex, Table leftOperand) {
+    private Optional<Table> handleJoin(String query, char[] queryArr, int queryOpIndex, Table leftOperand) {
         // if it doesn't, find operator and walk to end of right operand (either first space or bracket)
         int rightOperandIndex;
 
@@ -196,8 +204,8 @@ public class Query {
             }
         }
         if (rightOperandIndex == queryArr.length) {
-            System.err.println("Invalid Query - No Operator Found when Expected");
-            return null;
+            log.error("Invalid Query - No Operator Found when Expected");
+            return Optional.absent();
         }
         if (queryArr[++rightOperandIndex] != '(') {
             while (rightOperandIndex < queryArr.length && queryArr[rightOperandIndex] != ' ' && queryArr[rightOperandIndex] != '(') {
@@ -205,14 +213,13 @@ public class Query {
             }
         }
         if (rightOperandIndex == queryArr.length) {
-            System.err.println("Invalid Query - No Right Operand Found when Expected");
-            return null;
+            log.error("Invalid Query - No Right Operand Found when Expected");
+            return Optional.absent();
         }
 
-        Table rightOperand = queryHelper(query.substring(rightOperandIndex));
-        assert leftOperand != null;
-        assert rightOperand != null;
-        return leftOperand.join(rightOperand, query.substring(queryOpIndex + 1, rightOperandIndex).trim());
+        Optional<Table> rightOperand = queryHelper(query.substring(rightOperandIndex));
+        assert Objects.requireNonNull(rightOperand).isPresent();
+        return Optional.of(leftOperand.join(rightOperand.get(), query.substring(queryOpIndex + 1, rightOperandIndex).trim()));
     }
 
     /**
@@ -221,17 +228,17 @@ public class Query {
      * @param query the query to be parsed
      * @return the result of the selection operation
      */
-    private Table handleSelection(String query) {
+    private Optional<Table> handleSelection(String query) {
         String[] args;
         args = query.split(" ", 3);
         if (args.length != 3) {
-            System.out.println("Invalid Query");
-            return null;
+            log.error("Invalid Query");
+            return Optional.absent();
         }
 
-        Table table = queryHelper(args[2]);
-        assert table != null;
-        return table.select(args[1]);
+        Optional<Table> table = queryHelper(args[2]);
+        assert Objects.requireNonNull(table).isPresent();
+        return Optional.of(table.get().select(args[1]));
     }
 
     /**
@@ -240,19 +247,32 @@ public class Query {
      * @param query the query to be parsed
      * @return the result of the projection operation
      */
-    private Table handleProjection(String query) {
+    private Optional<Table> handleProjection(String query) {
+        Optional<String[]> temp= getArgs(query);
+        if (!temp.isPresent()) return Optional.absent();
+
+        String[] args = temp.get();
+        Optional<Table> table = queryHelper(args[2]);
+        assert Objects.requireNonNull(table).isPresent();
+        return Optional.of(table.get().projection(new TreeSet<>(Arrays.asList(args[1].split(",")))));
+    }
+
+    /**
+     * Gets the arguments from a query
+     *
+     * @param query the query to be parsed
+     * @return the arguments of the query
+     */
+    private Optional<String[]> getArgs(String query) {
         String[] args;
         query = query.replace(", ", ",");
         args = query.split(" ", 3);
 
         if (args.length != 3) {
-            System.out.println("Invalid Query");
-            return null;
+            log.error("Invalid Query");
+            return Optional.absent();
         }
-
-        Table table = queryHelper(args[2]);
-        assert table != null;
-        return table.projection(new TreeSet<>(Arrays.asList(args[1].split(","))));
+        return Optional.of(args);
     }
 
     /**
@@ -261,7 +281,7 @@ public class Query {
      * @param query the query to be parsed
      * @return the query without the named tables
      */
-    public String parseNamedTables(String query) {
+public Optional<String> parseNamedTables(String query) {
 
         boolean namedTableExists = true;
         while (namedTableExists && !query.isEmpty()) {
@@ -270,13 +290,15 @@ public class Query {
 
             if (splitQuery[0].contains("={")) {
                 String[] table = splitQuery[0].split("=\\{");   // Split the table in the query into name and rows
-                tableHashMap.put(table[0], stringToTable(table[1]));
+                Optional<Table> stringTable = stringToTable(table[1]);
+                if (!stringTable.isPresent()) return Optional.absent();
+                tableHashMap.put(table[0], stringTable.get());
                 query = splitQuery[1].trim();
             } else {
                 namedTableExists = false;
             }
         }
-        return query.trim();
+        return Optional.of(query.trim());
     }
 
     /**
@@ -285,7 +307,7 @@ public class Query {
      * @param tableStr the string to be converted
      * @return the table
      */
-    private Table stringToTable(String tableStr) {
+    private Optional<Table> stringToTable(String tableStr) {
         tableStr = tableStr.replaceAll("[\\p{Ps}\\p{Pe} ]", "").trim();
         Table table;
 
@@ -296,10 +318,10 @@ public class Query {
             table = tableHashMap.get(tableStr);
         }
         if (table == null) {
-            System.out.println("Invalid Table");
-            return null;
+            log.error("Invalid Table");
+            return Optional.absent();
         }
-        return table;
+        return Optional.of(table);
     }
 
     /**
@@ -326,11 +348,11 @@ public class Query {
      */
     public boolean saveTable(String name) {
         if (lastTable == null) {
-            System.out.println("No table to save");
+            log.error("No table to save");
             return false;
         }
         if (tableHashMap.containsKey(name)) {
-            System.err.println("Table name already exists");
+            log.error("Table name already exists");
             return false;
         }
         tableHashMap.put(name, lastTable);
@@ -340,23 +362,23 @@ public class Query {
     /**
      * Prints the last table
      */
-    public void printLastTable() {
+    public Optional<Table> getLastTable() {
         if (lastTable == null) {
-            System.out.println("No table to print");
-            return;
+            log.error("No table to print");
+            return Optional.absent();
         }
-        lastTable.printTable();
+        return Optional.of(lastTable);
     }
 
     /**
      * Prints the names of the tables in the tableHashMap
      */
-    public void printTables() {
-        System.out.println("Tables:");
+    public String tablesToString() {
+        StringBuilder sb = new StringBuilder().append("Tables:\n");
         for (String key : tableHashMap.keySet()) {
-            System.out.println(key);
+            sb.append(key).append("\n");
         }
-        System.out.println();
+        return sb.toString();
     }
 
     /**
