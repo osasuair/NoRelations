@@ -5,9 +5,9 @@ import java.util.*;
 
 public class Query {
     private static final Logger log = LogManager.getLogger(Query.class.getName());
-    private static final ArrayList<Character> UNI_QUERY_OPERATORS = new ArrayList<>(Arrays.asList('π', 'σ'));
-    private static final ArrayList<Character> BI_QUERY_OPERATORS = new ArrayList<>(Arrays.asList('∪', '∩', '-', '⨝'));
-    private static final ArrayList<String> QUERY_OPERATORS_STR = new ArrayList<>(Arrays.asList("project", "select", "union", "intersection", "difference", "join"));
+    private static final List<Character> UNI_QUERY_OPERATORS = List.of('π', 'σ');
+    private static final List<Character> BI_QUERY_OPERATORS = List.of('∪', '∩', '-', '⨝');
+    private static final List<String> QUERY_OPERATORS_STR = List.of("project", "select", "union", "intersection", "difference", "join");
 
     private final HashMap<String, Table> tableHashMap;
 
@@ -56,7 +56,7 @@ public class Query {
             }
         }
         if (queryOpIndex == query.length()) {
-            log.error("Invalid Query - '" + query + "' is not a valid query or table");
+            log.error("Invalid Query - '{}' is not a valid query or table", query);
             return -1;
         }
         return queryOpIndex;
@@ -68,15 +68,22 @@ public class Query {
      * @param query the query to be parsed
      */
     public Optional<Table> parseQuery(String query) {
+        // parse named tables
         Optional<String> tempExactQuery = parseNamedTables(query.replaceAll("[ +]", " ").replaceAll("\n+", "\n"));
-        if (!tempExactQuery.isPresent()) return Optional.absent();
+        if (!tempExactQuery.isPresent())
+            throw new IllegalArgumentException("Invalid Table String");
+        if (tempExactQuery.get().isEmpty())
+            return Optional.absent();
 
+        // parse table operations
         String exactQuery = tempExactQuery.get();
         exactQuery = replaceKeys(exactQuery);
         Optional<Table> table = queryHelper(exactQuery);
-        assert table.isPresent();
+
+        if (!table.isPresent())
+            throw new IllegalArgumentException("Invalid Query");
+
         lastTable = table.get();
-//        table.get().printTable();
         return table;
     }
 
@@ -388,8 +395,10 @@ public Optional<String> parseNamedTables(String query) {
      * @return the table
      */
     public Table getTable(String tableStr) {
+        if (tableStr.isEmpty()) return null;
         if (tableStr.startsWith("(") && tableStr.endsWith(")")) tableStr = tableStr.substring(1, tableStr.length() - 1);
         if (tableHashMap.containsKey(tableStr)) return tableHashMap.get(tableStr);
+
         tableStr = tableStr.replaceAll("[\\p{Ps}\\p{Pe} ]", "").trim();
         ArrayList<String> rows = new ArrayList<>(Arrays.asList(tableStr.split("\n")));
         return new Table(rows);

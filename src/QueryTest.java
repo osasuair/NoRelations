@@ -77,7 +77,7 @@ class QueryTest {
     @Test
     void testSaveTable() {
         Query query = new Query();
-        String queryStr = "table1 = {Name, Age, Height\n'John', 25, 6.0\n'Jane', 23, 5.5\n'Jack', 27, 5.9}\n";
+        String queryStr = "table1 = {Name, Age, Height\n'John', 25, 6.0\n'Jane', 23, 5.5\n'Jack', 27, 5.9}\ntable1";
         query.parseQuery(queryStr);
         assertTrue(query.saveTable("table2"));
         assertFalse(query.saveTable("table1"));
